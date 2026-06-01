@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LabStat Flow – Medical Laboratory Statistical Decision App</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root{--bg:#eef5f8;--card:#ffffff;--ink:#0f172a;--muted:#64748b;--primary:#0f766e;--primary2:#155e75;--line:#dbe5ea;--blue:#2563eb;--green:#15803d;--orange:#c2410c;--purple:#7e22ce;--red:#b91c1c;--yellow:#a16207}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:30px 36px;background:linear-gradient(135deg,#082f49,#0f766e 58%,#111827);color:white}header h1{margin:0;font-size:32px;letter-spacing:-.6px}header p{max-width:1150px;margin:9px 0 0;line-height:1.45;opacity:.95}
+main{display:grid;grid-template-columns:420px 1fr;gap:18px;padding:18px}.panel,.chart,.library{background:var(--card);border-radius:24px;box-shadow:0 14px 35px rgba(15,23,42,.08);padding:18px}.library{grid-column:1/3}.panel{height:max-content}
+h2{font-size:20px;margin:0 0 10px}h3{font-size:14px;color:#155e75;margin:17px 0 8px;text-transform:uppercase;letter-spacing:.04em}label{display:block;font-size:13px;font-weight:800;margin-top:10px;color:#1e293b}input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:13px;padding:10px;margin-top:5px;font-size:14px;background:#fff}textarea{min-height:74px;resize:vertical}button{width:100%;border:0;border-radius:14px;padding:11px 14px;margin-top:12px;background:var(--primary);color:#fff;font-weight:900;cursor:pointer}button:hover{filter:brightness(.95)}.secondary{background:#334155}.light{background:#e6f4f2;color:#115e59;border:1px solid #99d6cc}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}.hint,.small{font-size:12px;color:var(--muted);line-height:1.45}.status{background:#ecfeff;border-left:5px solid #0891b2;padding:11px;border-radius:13px;margin-top:12px;font-size:13px;line-height:1.45}.warning{background:#fff7ed;border-left:5px solid #f59e0b}.formula{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px;font-size:13px;line-height:1.45;margin-top:10px}.formula b{color:#0f766e}.out{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:13px;line-height:1.45}.box b{color:#0f766e}#mermaidBox{overflow:auto;min-height:590px;border:1px solid #e2e8f0;border-radius:18px;padding:10px;background:#fbfdff}.badge{display:inline-block;border-radius:999px;padding:5px 9px;margin:3px 3px 0 0;font-size:11px;font-weight:900}.b1{background:#dbeafe;color:var(--blue)}.b2{background:#dcfce7;color:var(--green)}.b3{background:#ffedd5;color:var(--orange)}.b4{background:#f3e8ff;color:var(--purple)}.b5{background:#fee2e2;color:var(--red)}.b6{background:#fef9c3;color:var(--yellow)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;max-height:420px;overflow:auto}.card{border:1px solid #e2e8f0;border-radius:16px;padding:11px;background:#fafafa;cursor:pointer}.card:hover{border-color:#0f766e;background:#f0fdfa}.card b{display:block}.pill{font-size:11px;color:#475569}.logic{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:10px;overflow:auto;white-space:pre-wrap}.mini{font-size:11px;color:#64748b}.toprow{display:flex;gap:8px;align-items:center;justify-content:space-between}.version{font-size:11px;background:#dcfce7;color:#166534;border-radius:999px;padding:5px 9px;font-weight:900}
+@media(max-width:980px){main{grid-template-columns:1fr}.library{grid-column:1}.out{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>LabStat Flow: Medical Laboratory Statistical Decision App</h1>
+<p><b>Correct concept:</b> the user enters a medical laboratory test. The app identifies the laboratory data type and measurement scale, then asks the research-design questions needed to decide the appropriate statistical test and generates a flowchart automatically.</p>
+</header>
+<main>
+<section class="panel">
+<div class="toprow"><h2>Input</h2><span class="version">Updated v2</span></div>
+<label>Search lab-test database</label>
+<input id="search" placeholder="HbA1c, CRP, troponin, culture, PCR, PSA..." oninput="renderCards()">
+<label>Laboratory test / biomarker</label>
+<input id="testName" value="HbA1c" oninput="autoDetect()">
+<div class="grid2">
+<div><label>Detected category</label><input id="category" readonly></div>
+<div><label>Detected data type</label><input id="dataType" readonly></div>
+</div>
+<div class="grid2">
+<div><label>Measurement scale</label><input id="scale" readonly></div>
+<div><label>Typical distribution</label><input id="dist" readonly></div>
+</div>
+<div class="status" id="detectStatus">The app infers metadata from the selected laboratory test.</div>
+<h3>Research design</h3>
+<label>Research objective</label>
+<select id="objective" onchange="generate()">
+<option value="auto">Auto-decide from data type and scenario</option>
+<option value="describe">Describe values / build reference interval</option>
+<option value="compare">Compare lab values between groups</option>
+<option value="paired">Before-after / repeated measurement</option>
+<option value="relationship">Relationship between two lab markers</option>
+<option value="prediction">Prediction / risk model</option>
+<option value="categorical">Positive/negative or categorical result analysis</option>
+<option value="diagnostic">Diagnostic accuracy vs gold standard</option>
+<option value="agreement">Agreement: new analyzer vs reference method</option>
+<option value="survival">Time-to-event prognosis</option>
+</select>
+<div class="grid2">
+<div><label>Number of groups</label><select id="groups" onchange="generate()"><option value="one">One</option><option value="two" selected>Two</option><option value="three">Three or more</option></select></div>
+<div><label>Sample relationship</label><select id="paired" onchange="generate()"><option value="independent">Independent</option><option value="paired">Paired/repeated</option></select></div>
+</div>
+<div class="grid2">
+<div><label>Normality assumption</label><select id="normality" onchange="generate()"><option value="auto">Auto from lab test</option><option value="normal">Normal</option><option value="nonnormal">Non-normal/skewed</option></select></div>
+<div><label>Cell count if categorical</label><select id="expected" onchange="generate()"><option value="high">Expected ≥5</option><option value="low">Expected <5</option></select></div>
+</div>
+<div class="grid2">
+<div><label>Gold standard</label><select id="gold" onchange="generate()"><option value="yes">Available</option><option value="no">Not available</option></select></div>
+<div><label>Outcome type</label><select id="outcome" onchange="generate()"><option value="continuous">Continuous</option><option value="binary">Binary</option><option value="time">Time-to-event</option></select></div>
+</div>
+<label>Clinical/research scenario</label>
+<textarea id="example" oninput="generate()">Compare HbA1c between diabetic and non-diabetic patients</textarea>
+<button onclick="generate()">Generate flowchart</button>
+<button class="secondary" onclick="addLabTest()">Add custom lab test to database</button>
+<button class="light" onclick="randomCase()">Try random lab case</button>
+<div class="status warning"><b>Novel assignment angle:</b> instead of a static chart, this is a rules-based statistical engine for medical laboratory research and illustration.</div>
+</section>
+<section class="chart">
+<h2>Generated statistical flowchart</h2>
+<div id="mermaidBox"><pre class="mermaid" id="diagram"></pre></div>
+<div class="out">
+<div class="box"><b>Recommended test</b><div id="plan"></div></div>
+<div class="box"><b>Why this decision?</b><div id="logic"></div></div>
+</div>
+<div class="formula" id="extra"></div>
+<p class="hint"><span class="badge b1">Parametric</span><span class="badge b2">Non-parametric</span><span class="badge b3">Categorical</span><span class="badge b4">Diagnostic / agreement</span><span class="badge b5">Prediction / survival</span><span class="badge b6">Reference interval</span></p>
+</section>
+<section class="library">
+<h2>Built-in medical laboratory test database</h2>
+<p class="small">Click any card. The app loads the lab-test metadata, detects data type, then updates the decision chart.</p>
+<div class="cards" id="cards"></div>
+</section>
+</main>
+<script>
+mermaid.initialize({startOnLoad:false,theme:'base',themeVariables:{primaryColor:'#e0f7f4',primaryTextColor:'#0f172a',primaryBorderColor:'#0f766e',lineColor:'#334155',tertiaryColor:'#f8fafc'}});
+const db=[
+{name:'HbA1c',cat:'Chemistry / Diabetes',type:'Continuous',scale:'Ratio (%)',dist:'normal',ex:'Compare HbA1c between diabetic and non-diabetic patients',objective:'compare',groups:'two',paired:'independent'},
+{name:'Fasting Blood Glucose',cat:'Chemistry / Diabetes',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Compare fasting glucose between obese and non-obese patients',objective:'compare',groups:'two',paired:'independent'},
+{name:'Oral Glucose Tolerance Test',cat:'Dynamic chemistry',type:'Repeated continuous',scale:'Ratio',dist:'skewed',ex:'Glucose at 0, 60 and 120 minutes after glucose load',objective:'paired',groups:'three',paired:'paired'},
+{name:'Insulin',cat:'Endocrine',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Insulin before and after lifestyle intervention',objective:'paired',groups:'two',paired:'paired'},
+{name:'Total Cholesterol',cat:'Lipid profile',type:'Continuous',scale:'Ratio',dist:'normal',ex:'Compare cholesterol across three diet groups',objective:'compare',groups:'three',paired:'independent'},
+{name:'LDL-C',cat:'Lipid profile',type:'Continuous',scale:'Ratio',dist:'normal',ex:'LDL-C before and after statin therapy',objective:'paired',groups:'two',paired:'paired'},
+{name:'Triglycerides',cat:'Lipid profile',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Compare triglycerides between metabolic syndrome groups',objective:'compare',groups:'two',paired:'independent'},
+{name:'Creatinine',cat:'Renal function',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Creatinine in acute kidney injury vs control patients',objective:'compare',groups:'two',paired:'independent'},
+{name:'eGFR',cat:'Renal function',type:'Continuous estimate',scale:'Ratio estimate',dist:'normal',ex:'Predict CKD status using eGFR and age',objective:'prediction',groups:'two',paired:'independent'},
+{name:'Urine Albumin-Creatinine Ratio',cat:'Urinalysis',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Evaluate ACR cut-off for early diabetic nephropathy',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'ALT',cat:'Liver function',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'ALT in hepatitis-positive vs hepatitis-negative patients',objective:'compare',groups:'two',paired:'independent'},
+{name:'AST',cat:'Liver function',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Relationship between AST and ALT in liver injury',objective:'relationship',groups:'two',paired:'independent'},
+{name:'Bilirubin',cat:'Liver function',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Bilirubin before and after phototherapy',objective:'paired',groups:'two',paired:'paired'},
+{name:'Albumin',cat:'Liver / nutrition',type:'Continuous',scale:'Ratio',dist:'normal',ex:'Albumin as a predictor of poor clinical outcome',objective:'prediction',groups:'two',paired:'independent'},
+{name:'Hemoglobin',cat:'Hematology',type:'Continuous',scale:'Ratio',dist:'normal',ex:'Hemoglobin between male and female patients',objective:'compare',groups:'two',paired:'independent'},
+{name:'White Blood Cell Count',cat:'Hematology',type:'Count / continuous',scale:'Ratio count',dist:'skewed',ex:'WBC count in bacterial vs viral infection',objective:'compare',groups:'two',paired:'independent'},
+{name:'Platelet Count',cat:'Hematology',type:'Count / continuous',scale:'Ratio count',dist:'skewed',ex:'Platelet count before and after chemotherapy',objective:'paired',groups:'two',paired:'paired'},
+{name:'CRP',cat:'Inflammation',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Evaluate CRP cut-off for bacterial infection',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'ESR',cat:'Inflammation',type:'Ordinal/continuous',scale:'Ratio-like',dist:'skewed',ex:'ESR across mild, moderate and severe inflammation',objective:'compare',groups:'three',paired:'independent'},
+{name:'Procalcitonin',cat:'Infection biomarker',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Procalcitonin accuracy for sepsis diagnosis',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'Troponin I',cat:'Cardiac biomarker',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Troponin I cut-off for myocardial infarction',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'BNP',cat:'Cardiac biomarker',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'BNP prediction of heart failure admission',objective:'prediction',groups:'two',paired:'independent'},
+{name:'D-dimer',cat:'Coagulation',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'D-dimer diagnostic accuracy for pulmonary embolism',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'PT/INR',cat:'Coagulation',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'INR before and after anticoagulant dose change',objective:'paired',groups:'two',paired:'paired'},
+{name:'Blood Culture',cat:'Microbiology',type:'Binary categorical',scale:'Positive/negative',dist:'categorical',ex:'Blood culture positive/negative vs sepsis status',objective:'categorical',groups:'two',paired:'independent'},
+{name:'Urine Culture Colony Count',cat:'Microbiology',type:'Count / semi-quantitative',scale:'Ordinal/count',dist:'skewed',ex:'Compare colony counts before and after antibiotic treatment',objective:'paired',groups:'two',paired:'paired'},
+{name:'PCR SARS-CoV-2',cat:'Molecular diagnostics',type:'Binary categorical',scale:'Detected/not detected',dist:'categorical',ex:'Rapid antigen test vs PCR on the same patients',objective:'categorical',groups:'two',paired:'paired'},
+{name:'PCR Ct Value',cat:'Molecular diagnostics',type:'Continuous',scale:'Interval cycle threshold',dist:'normal',ex:'Ct value relationship with viral load group',objective:'relationship',groups:'two',paired:'independent'},
+{name:'Antibody Titer',cat:'Serology',type:'Ordinal/continuous',scale:'Dilution titer',dist:'skewed',ex:'Antibody titer before and after vaccination',objective:'paired',groups:'two',paired:'paired'},
+{name:'HIV ELISA',cat:'Serology',type:'Binary categorical',scale:'Reactive/non-reactive',dist:'categorical',ex:'Evaluate ELISA against confirmatory Western blot',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'PSA',cat:'Tumor marker',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'PSA cut-off for prostate cancer screening',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'CA-125',cat:'Tumor marker',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'CA-125 levels across cancer stages',objective:'compare',groups:'three',paired:'independent'},
+{name:'TSH',cat:'Endocrine',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'TSH in hypothyroid vs euthyroid patients',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'Free T4',cat:'Endocrine',type:'Continuous',scale:'Ratio',dist:'normal',ex:'Free T4 relationship with TSH',objective:'relationship',groups:'two',paired:'independent'},
+{name:'Vitamin D',cat:'Vitamins',type:'Continuous',scale:'Ratio',dist:'normal',ex:'Vitamin D across age groups',objective:'compare',groups:'three',paired:'independent'},
+{name:'Ferritin',cat:'Iron studies',type:'Continuous',scale:'Ratio',dist:'skewed',ex:'Ferritin cut-off for iron deficiency',objective:'diagnostic',groups:'two',paired:'independent'},
+{name:'Reference Analyzer Glucose',cat:'Method comparison',type:'Continuous paired',scale:'Ratio',dist:'normal',ex:'Compare new glucose analyzer with reference analyzer',objective:'agreement',groups:'two',paired:'paired'},
+{name:'Flow Cytometry CD4 Count',cat:'Immunology',type:'Count / continuous',scale:'Ratio count',dist:'skewed',ex:'CD4 count as a prognostic marker for opportunistic infection',objective:'prediction',groups:'two',paired:'independent'},
+{name:'Blood Group',cat:'Transfusion medicine',type:'Nominal categorical',scale:'A/B/AB/O',dist:'categorical',ex:'Blood group distribution in donor population',objective:'categorical',groups:'one',paired:'independent'},
+{name:'Rh Factor',cat:'Transfusion medicine',type:'Binary categorical',scale:'Positive/negative',dist:'categorical',ex:'Rh factor association with transfusion reaction',objective:'categorical',groups:'two',paired:'independent'}
+];
+let active=db[0];
+function clean(s){return String(s||'').replace(/[\[\]{}()<>|]/g,'').replace(/:/g,' -').slice(0,70)}
+function findTest(q){q=q.toLowerCase().trim();return db.find(x=>x.name.toLowerCase()===q)||db.find(x=>x.name.toLowerCase().includes(q)||q.includes(x.name.toLowerCase()))}
+function autoDetect(){const q=document.getElementById('testName').value;const found=findTest(q); if(found){active=found}else{active={name:q||'Custom lab test',cat:'Custom / unknown',type:'Unknown',scale:'Needs manual classification',dist:'auto',ex:document.getElementById('example').value||'Custom laboratory study',objective:'auto',groups:'two',paired:'independent'}}; loadMeta(false); generate();}
+function loadMeta(updateScenario=true){document.getElementById('category').value=active.cat;document.getElementById('dataType').value=active.type;document.getElementById('scale').value=active.scale;document.getElementById('dist').value=active.dist==='normal'?'Approximately normal':active.dist==='skewed'?'Skewed / non-normal':active.dist==='categorical'?'Categorical':'Depends on sample';document.getElementById('detectStatus').innerHTML=`<b>${active.name}</b> detected as <b>${active.type}</b>. The app will now choose tests using data type + research objective + sample design.`; if(updateScenario){document.getElementById('testName').value=active.name;document.getElementById('example').value=active.ex;document.getElementById('objective').value=active.objective;document.getElementById('groups').value=active.groups;document.getElementById('paired').value=active.paired;}}
+function decide(){const obj0=document.getElementById('objective').value;const type=(active.type||'').toLowerCase();const dist0=document.getElementById('normality').value;const isCat=type.includes('categorical')||active.dist==='categorical';const isOrdinal=type.includes('ordinal');const dist=dist0==='auto'?active.dist:dist0==='normal'?'normal':'skewed';const groups=document.getElementById('groups').value;const paired=document.getElementById('paired').value;const expected=document.getElementById('expected').value;const gold=document.getElementById('gold').value;const outcome=document.getElementById('outcome').value;let obj=obj0==='auto'?(isCat?'categorical':'compare'):obj0;let test='',family='',reason='',extra='';
+if(obj==='describe'){family='Descriptive / reference interval';test=isCat?'Frequency and percentage; binomial confidence interval':'Mean±SD if normal; median/IQR if skewed; reference interval using nonparametric percentile method when needed';reason='Objective is to summarize lab results or build a reference interval.';extra='For reference intervals, check sample size, outliers, age/sex partitioning, and 2.5th–97.5th percentile limits.'}
+else if(obj==='diagnostic'){family='Diagnostic accuracy'; if(gold==='yes'){test=isCat?'Sensitivity, specificity, PPV, NPV, likelihood ratios; McNemar if paired diagnostic comparison':'ROC Curve Analysis with AUC, optimal cut-off, sensitivity and specificity';reason='A gold standard exists, so the lab test can be evaluated as a diagnostic classifier.';extra='Novel test: ROC Curve Analysis is ideal for biomarkers such as CRP, troponin, PSA, D-dimer, ferritin and ACR.'}else{test='Agreement or predictive validity analysis; gold standard is needed for full diagnostic accuracy';reason='Diagnostic accuracy cannot be fully established without a reference standard.';extra='Add a confirmed diagnosis, culture, imaging, biopsy, or reference method as the gold standard.'}}
+else if(obj==='agreement'){family='Method comparison / analyzer validation';test=isCat?'Cohen’s kappa for categorical agreement':'Bland–Altman Analysis + intraclass correlation coefficient; paired t-test only checks mean bias';reason='The aim is agreement between a new lab method/analyzer and a reference method.';extra='Novel test: Bland–Altman shows bias and limits of agreement, which is stronger than simple correlation for method comparison.'}
+else if(obj==='categorical'||isCat){family='Categorical tests'; if(paired==='paired'){test='McNemar’s test for paired binary results; Cohen’s kappa for agreement'}else if(groups==='one'){test='Chi-square goodness-of-fit or binomial test'}else{test=expected==='low'?'Fisher’s exact test':'Chi-square test of independence'} reason='The laboratory result is categorical such as positive/negative, reactive/non-reactive, or blood group.';extra='Report counts, percentages, odds ratio or risk ratio when appropriate.'}
+else if(obj==='paired'||paired==='paired'){family=dist==='normal'?'Parametric paired/repeated':'Non-parametric paired/repeated'; if(groups==='two'){test=dist==='normal'?'Paired t-test':'Wilcoxon signed-rank test'}else{test=dist==='normal'?'Repeated-measures ANOVA':'Friedman test'} reason='The same patients or samples are measured more than once.';extra='Use paired methods because observations are not independent.'}
+else if(obj==='compare'){family=dist==='normal'?'Parametric group comparison':'Non-parametric group comparison'; if(groups==='one'){test=dist==='normal'?'One-sample t-test':'One-sample Wilcoxon signed-rank test'}else if(groups==='two'){test=dist==='normal'?'Independent-samples t-test':'Mann–Whitney U test'}else{test=dist==='normal'?'One-way ANOVA with post-hoc tests':'Kruskal–Wallis test with post-hoc pairwise comparisons'} reason='The objective is to compare a continuous lab value between groups.';extra='Always check distribution, outliers, equal variance and clinically meaningful effect size.'}
+else if(obj==='relationship'){family='Association';test=(dist==='normal'&&!isOrdinal)?'Pearson correlation':'Spearman rank correlation';reason='The objective is association between two laboratory or clinical variables.';extra='Correlation does not prove agreement or causation.'}
+else if(obj==='prediction'){family='Prediction / regression'; if(outcome==='binary'){test='Logistic regression; report odds ratio and ROC/AUC for model performance'}else if(outcome==='time'){test='Cox proportional hazards regression'}else{test='Linear regression if residual assumptions are met; robust or transformed regression if skewed'} reason='The aim is to predict an outcome using lab markers.';extra='Split data into training/validation if building a prediction model.'}
+else if(obj==='survival'){family='Survival analysis';test='Kaplan–Meier curve with log-rank test; Cox regression for adjusted prediction';reason='The outcome is time until event such as mortality, relapse, admission or infection.';extra='Useful when follow-up time differs between patients.'}
+return{obj,type,dist,groups,paired,expected,gold,outcome,test,family,reason,extra,isCat};}
+function diagramFor(d){const n=clean(active.name), type=clean(active.type), dist=clean(d.dist), ex=clean(document.getElementById('example').value); return `flowchart TD\nA[Lab test entered: ${n}] --> B[Detect laboratory metadata]\nB --> C[Data type: ${type}]\nC --> D{Research objective?}\nD -->|${clean(d.obj)}| E[Scenario: ${ex}]\nE --> F{Measurement type}\nF -->|Categorical| G[Check counts and pairing]\nF -->|Continuous/ordinal| H[Check normality, groups and pairing]\nG --> I{Paired result?}\nI -->|Yes| J[McNemar or Kappa]\nI -->|No| K[Chi-square or Fisher exact]\nH --> L{Distribution: ${dist}}\nL -->|Normal| M[t-test / ANOVA / Pearson / regression]\nL -->|Skewed or ordinal| N[Mann-Whitney / Wilcoxon / Kruskal-Wallis / Spearman]\nD -->|Diagnostic accuracy| O[Gold standard available?]\nO -->|Yes| P[ROC curve, AUC, sensitivity, specificity]\nO -->|No| Q[Need reference standard or use agreement/prediction]\nD -->|Method comparison| R[Bland-Altman + ICC]\nK --> Z[Recommended: ${clean(d.test)}]\nJ --> Z\nM --> Z\nN --> Z\nP --> Z\nQ --> Z\nR --> Z\nclassDef start fill:#e0f2fe,stroke:#0369a1,stroke-width:2px;\nclassDef decision fill:#fef9c3,stroke:#a16207,stroke-width:2px;\nclassDef result fill:#dcfce7,stroke:#15803d,stroke-width:2px;\nclass A,B,C,E start;\nclass D,F,I,L,O decision;\nclass Z result;`;}
+async function generate(){const d=decide();document.getElementById('plan').innerHTML=`<p><b>${d.test}</b></p><p class="mini">Family: ${d.family}</p>`;document.getElementById('logic').innerHTML=`<div class="logic">Lab test: ${active.name}\nDetected type: ${active.type}\nScale: ${active.scale}\nDistribution rule: ${d.dist}\nObjective: ${d.obj}\nGroups: ${d.groups}\nSample relation: ${d.paired}\nDecision: ${d.reason}</div>`;document.getElementById('extra').innerHTML=`<b>Research note:</b> ${d.extra}`;const el=document.getElementById('diagram');el.removeAttribute('data-processed');el.textContent=diagramFor(d);await mermaid.run({nodes:[el]});}
+function renderCards(){const q=document.getElementById('search').value.toLowerCase();const cards=document.getElementById('cards');cards.innerHTML='';db.filter(x=>!q||x.name.toLowerCase().includes(q)||x.cat.toLowerCase().includes(q)||x.type.toLowerCase().includes(q)).forEach((x,i)=>{const div=document.createElement('div');div.className='card';div.innerHTML=`<b>${x.name}</b><span class="pill">${x.cat}</span><br><span class="badge ${x.dist==='categorical'?'b3':x.dist==='normal'?'b1':'b2'}">${x.type}</span><span class="badge b6">${x.scale}</span><p class="mini">${x.ex}</p>`;div.onclick=()=>{active=x;loadMeta(true);document.getElementById('normality').value='auto';generate();};cards.appendChild(div);});}
+function addLabTest(){const name=document.getElementById('testName').value.trim()||'Custom lab test';const custom={name,cat:'User-added test',type:prompt('Data type? e.g., Continuous, Binary categorical, Ordinal, Count')||'Continuous',scale:prompt('Measurement scale? e.g., Ratio, Positive/negative, Ordinal')||'Ratio',dist:prompt('Typical distribution? type: normal, skewed, or categorical')||'skewed',ex:document.getElementById('example').value||'Custom laboratory research scenario',objective:document.getElementById('objective').value==='auto'?'compare':document.getElementById('objective').value,groups:document.getElementById('groups').value,paired:document.getElementById('paired').value};db.unshift(custom);active=custom;loadMeta(true);renderCards();generate();}
+function randomCase(){active=db[Math.floor(Math.random()*db.length)];loadMeta(true);document.getElementById('normality').value='auto';generate();}
+renderCards();loadMeta(true);generate();
+</script>
+</body>
+</html>
